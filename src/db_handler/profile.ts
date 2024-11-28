@@ -13,7 +13,7 @@ export async function addWatchHistory(userId: number, videoId: number): Promise<
     } catch (error) {
       console.error('Error updating watch history:', error);
     }
-} NW1W 8LB
+} 
   
 export async function updateStreak(userId: number): Promise<void> {
     try {

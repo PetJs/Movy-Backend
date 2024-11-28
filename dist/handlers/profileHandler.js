@@ -2,23 +2,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getProfileHandler = void 0;
 const dbConfig_1 = require("../dbConfig");
-const profile_1 = require("../db_handler/profile");
 const getProfileHandler = async (req, res) => {
     const userId = parseInt(req.params.userId);
-    const videoId = parseInt(req.query.videoId);
     if (isNaN(userId)) {
         res.status(400).json({ error: 'Invalid user ID' });
         return;
     }
-    if (videoId && isNaN(videoId)) {
-        res.status(400).json({ error: 'Invalid video ID' });
-        return;
-    }
     try {
-        if (videoId) {
-            await (0, profile_1.addWatchHistory)(userId, videoId);
-            await (0, profile_1.updateStreak)(userId);
-        }
         const watchHistoryQuery = 'SELECT * FROM watch_history WHERE user_id = $1 ORDER BY watched_at DESC';
         const watchHistoryResult = await dbConfig_1.pool.query(watchHistoryQuery, [userId]);
         const streakQuery = 'SELECT current_streak, last_updated FROM streak WHERE user_id = $1';
@@ -32,6 +22,7 @@ const getProfileHandler = async (req, res) => {
         const user = userResult.rows[0];
         res.status(200).json({
             user: {
+                pfp: user.pfp,
                 name: user.name,
                 email: user.email,
             },

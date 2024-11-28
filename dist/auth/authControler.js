@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerHandler = void 0;
 const dbConfig_1 = require("../dbConfig");
+const path_1 = require("path");
 const bcrypt = require('bcrypt');
 const registerHandler = async (req, res) => {
     let { name, email, password, confirmPassword } = req.body;
@@ -23,11 +24,12 @@ const registerHandler = async (req, res) => {
             errors.push("Email already exists");
             return res.status(400).json({ errors });
         }
+        const defaultPfp = path_1.default.join('images', 'pfp.jpg');
         const insertQuery = `
-        INSERT INTO users (name, email, password)
-        VALUES ($1, $2, $3) RETURNING id, name, email;
+        INSERT INTO users (name, email, password, pfp)
+        VALUES ($1, $2, $3, $4) RETURNING id, name, email, pfp;
         `;
-        const insertResult = await dbConfig_1.pool.query(insertQuery, [name, email, hashedPassword]);
+        const insertResult = await dbConfig_1.pool.query(insertQuery, [name, email, hashedPassword, defaultPfp]);
         const newUser = insertResult.rows[0];
         res.status(201).send({
             message: "User registered successfully",
@@ -35,6 +37,7 @@ const registerHandler = async (req, res) => {
                 id: newUser.id,
                 name: newUser.name,
                 email: newUser.email,
+                pfp: newUser.pfp,
             },
         });
     }

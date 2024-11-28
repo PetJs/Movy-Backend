@@ -1,8 +1,8 @@
-import { Strategy as LocalStrategy, IStrategyOptions} from 'passport-local';
+import { Strategy as LocalStrategy, IStrategyOptions } from 'passport-local';
 import { pool } from './dbConfig';
-import bcrypt from 'bcrypt';
 import { PassportStatic } from 'passport';
 
+const bcrypt = require('bcrypt')
 
 interface User {
     id: number;
@@ -10,63 +10,63 @@ interface User {
     password: string;
 }
 
-export function initialize(passport: PassportStatic): void{
+export function initialize(passport: PassportStatic): void {
     const strategyOptions: IStrategyOptions = {
-        usernameField: 'email', 
-        passwordField: 'password', 
+        usernameField: 'email', // Field in the request payload to be used as username
+        passwordField: 'password', // Field in the request payload to be used as password
     };
 
-    const authenticateUser = async(
-        email: string, 
-        password: string, 
-        done: (error: any, user?: false | { [key: string]: any }, options?: { message: string }) => void)=>{
-
+    const authenticateUser = async (email: string, password: string, done: any) => {
+        console.log('Attempting login for:', email);  // Debug log
         pool.query(
-            `Select * FROM users WHERE email = $1`,
+            `SELECT * FROM users WHERE email = $1`,
             [email],
-            async (err: Error, results: {rows: any[]})=>{
-                if(err){
-                    throw err;
+            async (err, results) => {
+                if (err) {
+                    console.error('Database error:', err);
+                    return done(err);
                 }
-                console.log(results.rows);
-
-                if(results.rows.length > 0){
+    
+                console.log('Database results:', results.rows); // Log database results
+    
+                if (results.rows.length > 0) {
                     const user = results.rows[0];
-
-                    const isMatch = await bcrypt.compare(password, user.password, (err, isMatch)=>{
-                        if(err){
-                            throw err
-                        }
-                        if(isMatch){
-                            return done(null, user)
-                        }else{
-                            return done(null, false, { message: 'Password is incorrect' })
-                        }
-                    })
-                }else{
-                    return done(null, false, {message: "Email is not register"})
+    
+                    // Check if the password matches
+                    const isMatch = await bcrypt.compare(password, user.password);
+                    if (isMatch) {
+                        console.log('Password match success');
+                        return done(null, user);
+                    } else {
+                        console.log('Password incorrect');
+                        return done(null, false, { message: 'Password is incorrect' });
+                    }
+                } else {
+                    console.log('User not found');
+                    return done(null, false, { message: 'Email is not registered' });
                 }
             }
-        )
-    }
+        );
+    };
+    
+    passport.use(new LocalStrategy(strategyOptions, authenticateUser));
 
-    passport.use(
-        new LocalStrategy(
-            strategyOptions,
-            authenticateUser
-        )
-    )
+    // Serialize user for session storage
+    passport.serializeUser((user: User, done) => done(null, user.id));
 
-    passport.serializeUser((user:User, done)=>done(null, user.id))
+    // Deserialize user to attach to request object
+    passport.deserializeUser(async (id, done) => {
+        try {
+            const result = await pool.query(`SELECT * FROM users WHERE id = $1`, [id]);
 
-    passport.deserializeUser((id, done)=>{
-        pool.query(
-            `SELECT * FROM users WHERE id = $1`, [id], (err, results) => {
-                if(err){
-                    throw err;
-                }
-                return done(null, results.rows[0])
+            if (result.rows.length > 0) {
+                return done(null, result.rows[0]);
+            } else {
+                return done(null, false);
             }
-        )
-    })
+        } catch (error) {
+            console.error('Error in deserializeUser:', error);
+            return done(error);
+        }
+    });
 }
