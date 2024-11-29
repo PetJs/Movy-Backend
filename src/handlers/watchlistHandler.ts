@@ -40,6 +40,8 @@ export const watchlistHandler = async (req: Request, res: Response) => {
 export const getWatchlistHandler = async (req: Request, res: Response) => {
     const user_id = parseInt(req.params.userId);
 
+    console.log(user_id)
+
     if (!user_id) {
         return res.status(400).json({ message: 'User ID is required to fetch the watchlist.' });
     }
