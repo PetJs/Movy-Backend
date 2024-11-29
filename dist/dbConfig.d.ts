@@ -1,3 +1,3 @@
-import * as pg from 'pg';
-declare const pool: pg.Pool;
+import { Pool } from 'pg';
+declare const pool: Pool;
 export { pool };
