@@ -28,7 +28,6 @@ const fetchMovieDetails = async (videoId) => {
 const streamVideoHandler = async (req, res) => {
     const userId = parseInt(req.params.userId);
     const videoId = req.query.videoId;
-    const { seasonNumber, episodeNumber } = req.query;
     if (isNaN(userId) || !videoId) {
         res.status(400).json({ error: "Invalid user ID or video ID" });
         return;
@@ -46,19 +45,15 @@ const streamVideoHandler = async (req, res) => {
             streakCount = streakResult.rows[0].streak_count;
             lastUpdated = streakResult.rows[0].last_updated;
         }
-        if (lastUpdated) {
-            const hoursSinceLastUpdate = getTimeDifferenceInHours(new Date(lastUpdated));
-            if (hoursSinceLastUpdate > 36) {
+        const isNewDay = lastUpdated ? now.toDateString() !== new Date(lastUpdated).toDateString() : true;
+        if (isNewDay) {
+            const hoursSinceLastUpdate = lastUpdated ? getTimeDifferenceInHours(new Date(lastUpdated)) : 0;
+            if (!lastUpdated || hoursSinceLastUpdate > 36) {
                 currentStreak = 1;
-                streakCount += 1;
             }
-            else if (hoursSinceLastUpdate >= 24 && hoursSinceLastUpdate <= 36) {
+            else if (hoursSinceLastUpdate >= 24) {
                 currentStreak += 1;
-                streakCount += 1;
             }
-        }
-        else {
-            currentStreak = 1;
             streakCount += 1;
         }
         const updateStreakQuery = `

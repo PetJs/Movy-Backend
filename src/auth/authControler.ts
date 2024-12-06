@@ -1,12 +1,16 @@
 import { Request, Response } from "express";
 import { pool } from "../dbConfig";
-import path from "path";
-
+const path = require('path')
+const fs = require('fs');
 const bcrypt = require('bcrypt');
 
 export const registerHandler = async (req: Request, res: Response) => {
     let { name, email, password, confirmPassword } = req.body;
     let errors: string[] = [];
+
+    if (!name || !email || !password || !confirmPassword) {
+        errors.push("All fields are required");
+    }
 
     if (password.length < 8) {
         errors.push("Password is less than 8");
@@ -22,7 +26,6 @@ export const registerHandler = async (req: Request, res: Response) => {
 
     try {
         // Hashing Password
-        console.log(bcrypt);
         const hashedPassword = await bcrypt.hash(password, 12);
 
         // Querying the database to see if the user already exists
@@ -36,9 +39,11 @@ export const registerHandler = async (req: Request, res: Response) => {
             return res.status(400).json({ errors });
         }
 
-        const defaultPfp = path.join('images', 'pfp.jpg');
+        // Check if the profile picture exists
+        const defaultPfp = fs.existsSync(path.join(__dirname, 'images', 'pfp.jpg'))
+            ? path.join('images', 'pfp.jpg')
+            : 'https://i.imghippo.com/files/ibz9143XKE.png'; 
 
-        // Insert the new user into the database
         const insertQuery = `
         INSERT INTO users (name, email, password, pfp)
         VALUES ($1, $2, $3, $4) RETURNING id, name, email, pfp;
@@ -46,8 +51,7 @@ export const registerHandler = async (req: Request, res: Response) => {
 
         const insertResult = await pool.query(insertQuery, [name, email, hashedPassword, defaultPfp]);
         const newUser = insertResult.rows[0];
-
-        // Return a success response
+        
         res.status(201).send({
             message: "User registered successfully",
             user: {

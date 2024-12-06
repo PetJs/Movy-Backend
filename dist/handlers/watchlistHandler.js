@@ -5,23 +5,17 @@ const dbConfig_1 = require("../dbConfig");
 require("dotenv").config();
 const isProduction = process.env.NODE_ENV === "production";
 const watchlistHandler = async (req, res) => {
-    const { user_id, movie_id, title, release_year, rating, overview, posterPath } = req.body;
-    if (!user_id || !movie_id || !title || !release_year || !rating || !posterPath) {
-        return res.status(400).json({ message: 'User ID, Movie ID, Title, Release Year, Rating, and Poster Path are required.' });
-    }
-    if (typeof rating !== 'number' || isNaN(rating)) {
-        return res.status(400).json({ message: 'Rating must be a valid number.' });
-    }
-    if (typeof release_year !== 'string' || isNaN(Number(release_year))) {
-        return res.status(400).json({ message: 'Release Year must be a valid year.' });
+    const { user_id, movie_id, title, overview, posterPath } = req.body;
+    if (!user_id || !movie_id || !title || !posterPath) {
+        return res.status(400).json({ message: 'User ID, Movie ID, Title, and Poster Path are required.' });
     }
     const query = `
-    INSERT INTO watchlist (user_id, movie_id, title, release_year, rating, overview, poster_path)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    INSERT INTO watchlist (user_id, movie_id, title, overview, poster_path)
+    VALUES ($1, $2, $3, $4, $5)
     ON CONFLICT (user_id, movie_id) DO NOTHING;
     `;
     try {
-        await dbConfig_1.pool.query(query, [user_id, movie_id, title, release_year, rating, overview, posterPath]);
+        await dbConfig_1.pool.query(query, [user_id, movie_id, title, overview, posterPath]);
         res.status(201).json({ message: 'Movie added to watchlist.' });
     }
     catch (error) {
@@ -32,11 +26,12 @@ const watchlistHandler = async (req, res) => {
 exports.watchlistHandler = watchlistHandler;
 const getWatchlistHandler = async (req, res) => {
     const user_id = parseInt(req.params.userId);
+    console.log(user_id);
     if (!user_id) {
         return res.status(400).json({ message: 'User ID is required to fetch the watchlist.' });
     }
     const query = `
-        SELECT id, movie_id, title, release_year, rating, overview, poster_path AS "posterPath"
+        SELECT id, movie_id, title, overview, poster_path AS "posterPath"
         FROM watchlist
         WHERE user_id = $1
         ORDER BY release_year DESC;

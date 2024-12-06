@@ -11,9 +11,9 @@ const getProfileHandler = async (req, res) => {
     try {
         const watchHistoryQuery = 'SELECT * FROM watch_history WHERE user_id = $1 ORDER BY watched_at DESC';
         const watchHistoryResult = await dbConfig_1.pool.query(watchHistoryQuery, [userId]);
-        const streakQuery = 'SELECT current_streak, last_updated FROM streak WHERE user_id = $1';
+        const streakQuery = "SELECT current_streak, streak_count, last_updated FROM streak WHERE user_id = $1";
         const streakResult = await dbConfig_1.pool.query(streakQuery, [userId]);
-        const userQuery = 'SELECT name, email FROM users WHERE id = $1';
+        const userQuery = 'SELECT name, email, pfp FROM users WHERE id = $1';
         const userResult = await dbConfig_1.pool.query(userQuery, [userId]);
         if (userResult.rows.length === 0) {
             res.status(404).json({ error: 'User not found' });

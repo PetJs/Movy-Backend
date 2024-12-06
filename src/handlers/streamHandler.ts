@@ -33,18 +33,14 @@ export const streamVideoHandler = async (req: Request, res: Response): Promise<v
   const userId = parseInt(req.params.userId);
   const videoId = req.query.videoId as string;
 
-  const { seasonNumber, episodeNumber } = req.query;
-
   if (isNaN(userId) || !videoId) {
     res.status(400).json({ error: "Invalid user ID or video ID" });
     return;
   }
 
   try {
-    // Fetch movie details
     const { title, posterPath } = await fetchMovieDetails(videoId);
 
-    // Fetch current streak and last update
     const streakQuery = "SELECT current_streak, streak_count, last_updated FROM streak WHERE user_id = $1";
     const streakResult = await pool.query(streakQuery, [userId]);
 
@@ -59,21 +55,19 @@ export const streamVideoHandler = async (req: Request, res: Response): Promise<v
       lastUpdated = streakResult.rows[0].last_updated;
     }
 
-    if (lastUpdated) {
-      const hoursSinceLastUpdate = getTimeDifferenceInHours(new Date(lastUpdated));
-      if (hoursSinceLastUpdate > 36) {
-        currentStreak = 1;
-        streakCount += 1;  
-      } else if (hoursSinceLastUpdate >= 24 && hoursSinceLastUpdate <= 36) {
-        currentStreak += 1;
-        streakCount += 1;
+    const isNewDay = lastUpdated ? now.toDateString() !== new Date(lastUpdated).toDateString() : true;
+
+    if(isNewDay){
+      const hoursSinceLastUpdate = lastUpdated ? getTimeDifferenceInHours(new Date(lastUpdated)) : 0;
+
+      if(!lastUpdated || hoursSinceLastUpdate > 36){
+        currentStreak = 1
+      }else if(hoursSinceLastUpdate >= 24){
+        currentStreak += 1
       }
-    } else {
-      currentStreak = 1;
-      streakCount += 1;
+      streakCount += 1
     }
 
-    // Update streak table
     const updateStreakQuery = `
       INSERT INTO streak (user_id, current_streak, streak_count, last_updated)
       VALUES ($1, $2, $3, $4)
@@ -83,7 +77,6 @@ export const streamVideoHandler = async (req: Request, res: Response): Promise<v
     `;
     await pool.query(updateStreakQuery, [userId, currentStreak, streakCount, now]);
 
-    // Add to watch history
     const watchHistoryQuery = `
       INSERT INTO watch_history (user_id, video_id, movie_title, poster_path, watched_at)
       VALUES ($1, $2, $3, $4, $5)

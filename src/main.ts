@@ -17,7 +17,7 @@ import { hollywoodHandler } from "./handlers/hollywoodHandler";
 import { comedyHandler } from "./handlers/comedyHandler";
 import { recommendationsHandler } from "./handlers/recHandler";
 import { streamTvShowHandler } from "./handlers/streamTvShowhandler";
-
+import { logOutHandler } from "./handlers/logoutHandler";
 
 const express = require('express')
 const cors = require('cors');
@@ -46,11 +46,13 @@ app.use(express.urlencoded({extended: false}))
 app.use("/images", express.static(path.join(__dirname, "public/images")));
 
 app.use(session({
-    secret: "secret",
+    secret: process.env.SESSION_SECRET,
 
     resave: false,
 
-    saveUninitialized: false
+    saveUninitialized: false,
+
+    cookie: { secure: process.env.NODE_ENV === 'production' }
 }))
 app.use(passport.initialize())
 app.use(passport.session())
@@ -108,6 +110,8 @@ app.post('/login', async (req: Request, res: Response) => {
     );
 });
 
+app.get("/logout", checkAuthenticated, logOutHandler)
+
 app.get('/profile/:userId', checkAuthenticated, getProfileHandler);
 
 app.get('/search', searchHandler)
@@ -141,9 +145,10 @@ app.get("/recommendations/:movie_id", recommendationsHandler);
 
 function checkAuthenticated(req:Request, res:Response, next: ()=>{}){
     if(req.isAuthenticated()){
-        return res.redirect("/")
+        return res.redirect('/')
     }
     next()
+    // res.status(401).json({message: "User is not AUTHENTICATED"})
 }
 
 function checkNotAuthenticated(req:Request, res:Response, next: ()=>{}){

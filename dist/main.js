@@ -18,6 +18,7 @@ const hollywoodHandler_1 = require("./handlers/hollywoodHandler");
 const comedyHandler_1 = require("./handlers/comedyHandler");
 const recHandler_1 = require("./handlers/recHandler");
 const streamTvShowhandler_1 = require("./handlers/streamTvShowhandler");
+const logoutHandler_1 = require("./handlers/logoutHandler");
 const express = require('express');
 const cors = require('cors');
 const app = express();
@@ -39,9 +40,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use("/images", express.static(path.join(__dirname, "public/images")));
 app.use(session({
-    secret: "secret",
+    secret: process.env.SESSION_SECRET,
     resave: false,
-    saveUninitialized: false
+    saveUninitialized: false,
+    cookie: { secure: process.env.NODE_ENV === 'production' }
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -87,6 +89,7 @@ app.post('/login', async (req, res) => {
         }
     });
 });
+app.get("/logout", checkAuthenticated, logoutHandler_1.logOutHandler);
 app.get('/profile/:userId', checkAuthenticated, profileHandler_1.getProfileHandler);
 app.get('/search', searchHandler_1.searchHandler);
 app.get('/tv-search', tvSearchHandler_1.searchTVShowHandler);
@@ -104,7 +107,7 @@ app.get('/comedy', comedyHandler_1.comedyHandler);
 app.get("/recommendations/:movie_id", recHandler_1.recommendationsHandler);
 function checkAuthenticated(req, res, next) {
     if (req.isAuthenticated()) {
-        return res.redirect("/");
+        return res.redirect('/');
     }
     next();
 }

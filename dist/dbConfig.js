@@ -8,7 +8,6 @@ const isProduction = process.env.NODE_ENV === "production";
 const connectionString = isProduction
     ? process.env.DATABASE_URL
     : `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_DATABASE}`;
-console.log('Connecting to database using:', isProduction ? 'DATABASE_URL' : 'local connection string');
 const pool = new pg_1.Pool({
     connectionString,
     ssl: isProduction ? { rejectUnauthorized: false } : false,
