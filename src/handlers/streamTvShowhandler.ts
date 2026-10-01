@@ -4,26 +4,25 @@ import axios from "axios";
 require("dotenv").config();
 
 const fetchMovieDetails = async (videoId: string): Promise<{ title: string; posterPath: string }> => {
-  const url = `https://api.themoviedb.org/3/${videoId.startsWith('tv') ? 'tv' : 'movie'}/${videoId}?api_key=${process.env.API_KEY}`;
+  // Strip any accidental 'tv' prefix if your frontend passes it, 
+  // or handle standard numeric TMDb IDs for TV shows.
+  const cleanId = videoId.startsWith('tv') ? videoId.replace('tv', '') : videoId;
+  
+  // Since this is streamTvShowHandler, it should always query the /tv/ endpoint
+  const url = `https://api.themoviedb.org/3/tv/${cleanId}?api_key=${process.env.API_KEY}`;
 
   try {
     const response = await axios.get(url);
 
-    // Return details based on whether it's a TV show
-    if (videoId.startsWith('tv')) {
-      return {
-        title: response.data.name, // TV shows use 'name' for the title
-        posterPath: response.data.poster_path ? `https://image.tmdb.org/t/p/w500${response.data.poster_path}` : '',
-      };
-    } else {
-      return { title: '', posterPath: '' }; // Return empty for non-TV shows
-    }
+    return {
+      title: response.data.name || response.data.title || '',
+      posterPath: response.data.poster_path ? `https://image.tmdb.org/t/p/w500${response.data.poster_path}` : '',
+    };
   } catch (error) {
-    console.error("Error fetching TV show details:", error);
+    console.error("Error fetching TV show details from TMDb:", error.response?.data || error.message);
     throw new Error("Failed to fetch TV show details");
   }
 };
-
 // Handler for TV shows
 export const streamTvShowHandler = async (req: Request, res: Response): Promise<void> => {
   const userId = parseInt(req.params.userId);
